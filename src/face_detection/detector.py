@@ -4,12 +4,15 @@ Niyya Face Detector - Module de détection faciale.
 Ce module fournit une API simple pour détecter la présence de visages
 dans des images, destiné à la modération de contenu.
 """
+import logging
+import os
 
 import cv2
 import numpy as np
 from typing import Dict, Any, Optional
 from pathlib import Path
-
+import insightface
+from insightface.app import FaceAnalysis
 from .exceptions import ImageProcessingError, ModelLoadingError
 
 
@@ -181,3 +184,32 @@ class FaceDetector:
         """
         result = self.analyze(image_content)
         return not result["has_face"]
+
+
+class AdvancedFaceDetector:
+    """Détecteur avancé avec RetinaFace - Meilleure détection hijab."""
+
+    def __init__(self, verbose: bool = False):
+        # Initialisation de RetinaFace
+        self.app = FaceAnalysis(allowed_modules=['detection'], verbose=verbose)
+        self.app.prepare(ctx_id=0, det_size=(640, 640))
+        self.model_type = "RetinaFace"
+
+    def analyze(self, image_path: str):
+        """Analyse une image."""
+        img = cv2.imread(image_path)
+        faces = self.app.get(img)
+
+        score = None
+        for i, face in enumerate(faces):
+            bbox = face['bbox'].astype(int)
+            score = face['det_score']
+            print(f"   Visage {i + 1}: confiance={score:.2%}")
+            print(f"   Coordonnées: x={bbox[0]}, y={bbox[1]}, w={bbox[2] - bbox[0]}, h={bbox[3] - bbox[1]}")
+
+        return {
+            "has_face": len(faces) > 0,
+            "face_count": len(faces),
+            "confidence": f"{score:.2%}" if score is None else "0.0%",
+            "model_type": self.model_type
+        }
