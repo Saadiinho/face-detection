@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-"""
-Script de test manuel pour le module de détection faciale.
-
-Usage:
-    python test_manual.py --image /chemin/vers/ta/photo.jpg
-"""
-
 import argparse
 from pathlib import Path
 from src.face_detection.detector import FaceDetector, AdvancedFaceDetector
