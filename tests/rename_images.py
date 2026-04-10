@@ -18,7 +18,7 @@ from typing import List
 
 
 # Extensions d'images supportées
-SUPPORTED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff'}
+SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
 
 
 def get_image_files(folder: Path) -> List[Path]:
@@ -39,7 +39,8 @@ def get_image_files(folder: Path) -> List[Path]:
 
     # Filtrer les fichiers par extension
     image_files = [
-        f for f in folder.iterdir()
+        f
+        for f in folder.iterdir()
         if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
     ]
 
@@ -48,10 +49,7 @@ def get_image_files(folder: Path) -> List[Path]:
 
 
 def rename_images(
-    folder: Path,
-    prefix: str,
-    start_index: int = 1,
-    dry_run: bool = False
+    folder: Path, prefix: str, start_index: int = 1, dry_run: bool = False
 ) -> None:
     """
     Renomme les images d'un dossier avec un préfixe et un index.
@@ -83,7 +81,7 @@ def rename_images(
 
     for image_path in image_files:
         # Déterminer l'extension (toujours .jpg pour uniformité)
-        new_extension = '.jpg'
+        new_extension = ".jpg"
         new_name = f"{prefix}_{counter}{new_extension}"
         new_path = folder / new_name
 
@@ -137,34 +135,38 @@ Exemples:
     python rename_test_images.py --folder tests/fixtures/without_face --type noface
     python rename_test_images.py --folder ./images --type face --start 10
     python rename_test_images.py --folder ./images --type face --dry-run
-        """
+        """,
     )
 
     parser.add_argument(
-        "--folder", "-f",
+        "--folder",
+        "-f",
         required=True,
         type=Path,
-        help="Dossier contenant les images à renommer"
+        help="Dossier contenant les images à renommer",
     )
 
     parser.add_argument(
-        "--type", "-t",
+        "--type",
+        "-t",
         required=True,
         choices=["face", "noface"],
-        help="Type d'images: 'face' (avec visage) ou 'noface' (sans visage)"
+        help="Type d'images: 'face' (avec visage) ou 'noface' (sans visage)",
     )
 
     parser.add_argument(
-        "--start", "-s",
+        "--start",
+        "-s",
         type=int,
         default=1,
-        help="Index de départ pour la numérotation (défaut: 1)"
+        help="Index de départ pour la numérotation (défaut: 1)",
     )
 
     parser.add_argument(
-        "--dry-run", "-d",
+        "--dry-run",
+        "-d",
         action="store_true",
-        help="Affiche les changements sans les appliquer (mode test)"
+        help="Affiche les changements sans les appliquer (mode test)",
     )
 
     args = parser.parse_args()
@@ -184,7 +186,7 @@ Exemples:
             folder=args.folder,
             prefix=prefix,
             start_index=args.start,
-            dry_run=args.dry_run
+            dry_run=args.dry_run,
         )
     except (FileNotFoundError, NotADirectoryError) as e:
         print(f"❌ Erreur: {e}")

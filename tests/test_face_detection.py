@@ -15,16 +15,16 @@ class TestFaceDetector:
         """Teste l'initialisation avec Haar."""
         detector = FaceDetector(model_type="haar")
         assert detector.model_type == "haar"
-        assert hasattr(detector, '_cascade')
+        assert hasattr(detector, "_cascade")
 
     def test_init_dnn_without_path_raises_error(self):
         """Teste que DNN sans chemin lève une erreur."""
         with pytest.raises(ModelLoadingError):
             FaceDetector(model_type="dnn")
 
-    @patch('src.face_detection.detector.cv2.imdecode')
-    @patch('src.face_detection.detector.cv2.cvtColor')
-    @patch('src.face_detection.detector.cv2.CascadeClassifier.detectMultiScale')
+    @patch("src.face_detection.detector.cv2.imdecode")
+    @patch("src.face_detection.detector.cv2.cvtColor")
+    @patch("src.face_detection.detector.cv2.CascadeClassifier.detectMultiScale")
     def test_analyze_bytes_returns_face_detected(
         self, mock_detect, mock_cvt, mock_decode
     ):
@@ -39,7 +39,7 @@ class TestFaceDetector:
         assert result["has_face"] is True
         assert result["face_count"] == 1
 
-    @patch('src.face_detection.detector.cv2.imdecode')
+    @patch("src.face_detection.detector.cv2.imdecode")
     def test_analyze_bytes_invalid_image_raises_error(self, mock_decode):
         """Teste la gestion d'image invalide."""
         mock_decode.return_value = None
@@ -52,7 +52,7 @@ class TestFaceDetector:
     def test_validate_for_upload_returns_true_when_no_face(self):
         """Teste la validation upload sans visage."""
         # ✅ CORRECTION: Patch _analyze_bytes, pas analyze
-        with patch.object(FaceDetector, '_analyze_bytes') as mock_analyze_bytes:
+        with patch.object(FaceDetector, "_analyze_bytes") as mock_analyze_bytes:
             mock_analyze_bytes.return_value = {"has_face": False}
 
             detector = FaceDetector(model_type="haar")
@@ -64,7 +64,7 @@ class TestFaceDetector:
     def test_validate_for_upload_returns_false_when_face(self):
         """Teste la validation upload avec visage."""
         # ✅ CORRECTION: Patch _analyze_bytes, pas analyze
-        with patch.object(FaceDetector, '_analyze_bytes') as mock_analyze_bytes:
+        with patch.object(FaceDetector, "_analyze_bytes") as mock_analyze_bytes:
             mock_analyze_bytes.return_value = {"has_face": True}
 
             detector = FaceDetector(model_type="haar")

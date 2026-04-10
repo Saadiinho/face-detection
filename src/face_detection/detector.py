@@ -33,7 +33,7 @@ class FaceDetector:
         self,
         model_type: str = "haar",
         confidence_threshold: float = 0.5,
-        model_path: Optional[Path] = None
+        model_path: Optional[Path] = None,
     ):
         """
         Initialise le détecteur de visages.
@@ -58,7 +58,7 @@ class FaceDetector:
         """Initialise le modèle Haar Cascades."""
         try:
             self._cascade = cv2.CascadeClassifier(
-                cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+                cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
             )
         except Exception as e:
             raise ModelLoadingError(f"Échec chargement Haar: {str(e)}")
@@ -72,10 +72,7 @@ class FaceDetector:
         caffemodel = self._model_path / "res10_300x300_ssd_iter_140000.caffemodel"
 
         try:
-            self._net = cv2.dnn.readNetFromCaffe(
-                str(prototxt),
-                str(caffemodel)
-            )
+            self._net = cv2.dnn.readNetFromCaffe(str(prototxt), str(caffemodel))
         except Exception as e:
             raise ModelLoadingError(f"Échec chargement DNN: {str(e)}")
 
@@ -114,7 +111,7 @@ class FaceDetector:
                 "has_face": len(faces) > 0,
                 "face_count": len(faces),
                 "confidence": confidence,
-                "model_type": self.model_type
+                "model_type": self.model_type,
             }
 
         except ImageProcessingError:
@@ -127,10 +124,7 @@ class FaceDetector:
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         faces = self._cascade.detectMultiScale(
-            gray,
-            scaleFactor=1.1,
-            minNeighbors=5,
-            minSize=(30, 30)
+            gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30)
         )
 
         # Haar ne retourne pas de confiance, on met 1.0 par défaut
@@ -144,10 +138,7 @@ class FaceDetector:
 
         # Prétraitement
         blob = cv2.dnn.blobFromImage(
-            cv2.resize(img, (300, 300)),
-            1.0,
-            (300, 300),
-            (104.0, 177.0, 123.0)
+            cv2.resize(img, (300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0)
         )
 
         self._net.setInput(blob)
@@ -211,7 +202,7 @@ class FaceDetector:
 
         try:
             # Lecture du fichier en mode binaire
-            with open(image_file, 'rb') as f:
+            with open(image_file, "rb") as f:
                 image_bytes = f.read()
 
             # Vérification que le fichier n'est pas vide
@@ -246,7 +237,7 @@ class AdvancedFaceDetector:
 
     def __init__(self, verbose: bool = False):
         # Initialisation de RetinaFace
-        self.app = FaceAnalysis(allowed_modules=['detection'], verbose=verbose)
+        self.app = FaceAnalysis(allowed_modules=["detection"], verbose=verbose)
         self.app.prepare(ctx_id=0, det_size=(640, 640))
         self.model_type = "RetinaFace"
 
@@ -257,14 +248,16 @@ class AdvancedFaceDetector:
 
         score = None
         for i, face in enumerate(faces):
-            bbox = face['bbox'].astype(int)
-            score = face['det_score']
+            bbox = face["bbox"].astype(int)
+            score = face["det_score"]
             print(f"   Visage {i + 1}: confiance={score:.2%}")
-            print(f"   Coordonnées: x={bbox[0]}, y={bbox[1]}, w={bbox[2] - bbox[0]}, h={bbox[3] - bbox[1]}")
+            print(
+                f"   Coordonnées: x={bbox[0]}, y={bbox[1]}, w={bbox[2] - bbox[0]}, h={bbox[3] - bbox[1]}"
+            )
 
         return {
             "has_face": len(faces) > 0,
             "face_count": len(faces),
             "confidence": f"{score:.2%}" if score is not None else "0.0%",
-            "model_type": self.model_type
+            "model_type": self.model_type,
         }
