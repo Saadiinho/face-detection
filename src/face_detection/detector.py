@@ -152,7 +152,7 @@ class FaceDetector:
 
             if confidence > self.confidence_threshold:
                 box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-                (x, y, w_box, h_box) = box.astype("int")
+                x, y, w_box, h_box = box.astype("int")
                 faces.append((int(x), int(y), int(w_box), int(h_box)))
                 confidences.append(float(confidence))
 
