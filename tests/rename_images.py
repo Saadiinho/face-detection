@@ -12,7 +12,6 @@ Usage:
     python rename_test_images.py --folder tests/fixtures/with_face --type face --dry-run
 """
 
-import os
 import argparse
 from pathlib import Path
 from typing import List

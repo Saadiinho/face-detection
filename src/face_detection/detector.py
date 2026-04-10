@@ -4,15 +4,14 @@ Niyya Face Detector - Module de détection faciale.
 Ce module fournit une API simple pour détecter la présence de visages
 dans des images, destiné à la modération de contenu.
 """
-import logging
-import os
+
+from pathlib import Path
+from typing import Dict, Any, Optional
 
 import cv2
 import numpy as np
-from typing import Dict, Any, Optional
-from pathlib import Path
-import insightface
 from insightface.app import FaceAnalysis
+
 from .exceptions import ImageProcessingError, ModelLoadingError
 
 
