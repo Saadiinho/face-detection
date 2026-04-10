@@ -40,7 +40,6 @@ jobs:
       - name: Check code formatting (Black)
         run: make black-check
 
-
       - name: Run tests
         run: make test
 
