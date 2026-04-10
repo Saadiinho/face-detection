@@ -80,7 +80,7 @@ class FaceDetector:
         except Exception as e:
             raise ModelLoadingError(f"Échec chargement DNN: {str(e)}")
 
-    def analyze(self, image_content: bytes) -> Dict[str, Any]:
+    def _analyze_bytes(self, image_content: bytes) -> Dict[str, Any]:
         """
         Analyse une image pour détecter des visages.
 
@@ -171,6 +171,63 @@ class FaceDetector:
 
         return faces, avg_confidence
 
+    def analyze(self, image_path: str) -> Dict[str, Any]:
+        """
+        Analyse une image depuis un chemin de fichier.
+
+        Méthode principale d'entrée pour analyser une image stockée sur disque.
+        Lit le fichier, le convertit en bytes, puis appelle analyze_bytes.
+
+        Args:
+            image_path: Chemin absolu ou relatif vers le fichier image
+
+        Returns:
+            Dict contenant:
+                - has_face (bool): Présence d'au moins un visage
+                - face_count (int): Nombre de visages détectés
+                - faces (list): Coordonnées des visages [(x, y, w, h), ...]
+                - confidence (float): Confiance moyenne des détections
+                - model_type (str): Type de modèle utilisé
+
+        Raises:
+            FileNotFoundError: Si le fichier n'existe pas
+            ImageProcessingError: Si l'image ne peut être traitée
+
+        Example:
+            >>> detector = FaceDetector(model_type="haar")
+            >>> result = detector.analyze("tests/fixtures/face1.jpg")
+            >>> print(result["has_face"])
+            True
+        """
+        from pathlib import Path
+
+        image_file = Path(image_path)
+
+        # Vérification que le fichier existe
+        if not image_file.exists():
+            raise FileNotFoundError(f"Le fichier '{image_path}' n'existe pas")
+
+        # Vérification que c'est bien un fichier
+        if not image_file.is_file():
+            raise ImageProcessingError(f"'{image_path}' n'est pas un fichier")
+
+        try:
+            # Lecture du fichier en mode binaire
+            with open(image_file, 'rb') as f:
+                image_bytes = f.read()
+
+            # Vérification que le fichier n'est pas vide
+            if not image_bytes:
+                raise ImageProcessingError(f"Le fichier '{image_path}' est vide")
+
+            # Appel de la méthode d'analyse existante
+            return self._analyze_bytes(image_bytes)
+
+        except PermissionError:
+            raise ImageProcessingError(f"Permission refusée pour lire '{image_path}'")
+        except IOError as e:
+            raise ImageProcessingError(f"Erreur de lecture: {str(e)}")
+
     def validate_for_upload(self, image_content: bytes) -> bool:
         """
         Vérifie si une image est valide pour upload (aucun visage).
@@ -182,7 +239,7 @@ class FaceDetector:
             True si l'image peut être uploadée (pas de visage),
             False sinon
         """
-        result = self.analyze(image_content)
+        result = self._analyze_bytes(image_content)
         return not result["has_face"]
 
 
