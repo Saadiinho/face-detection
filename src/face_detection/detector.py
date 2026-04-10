@@ -114,7 +114,6 @@ class FaceDetector:
             return {
                 "has_face": len(faces) > 0,
                 "face_count": len(faces),
-                "faces": faces,
                 "confidence": confidence,
                 "model_type": self.model_type
             }
