@@ -31,6 +31,10 @@ test:
 black:
 	black .
 
+## black-check: check black for all project
+.PHONY: black-check
+black-check:
+	black --check src/ tests/
 
 # ==================================================================================== #
 # FREEZE
