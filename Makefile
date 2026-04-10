@@ -45,3 +45,8 @@ black-check:
 freeze:
 	pip freeze > requirements.txt
 
+## freeze-dev: Add dependancies to requirements.txt
+.PHONY: freeze-dev
+freeze-dev:
+	pip freeze > requirements-dev.txt
+
