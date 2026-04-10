@@ -210,6 +210,6 @@ class AdvancedFaceDetector:
         return {
             "has_face": len(faces) > 0,
             "face_count": len(faces),
-            "confidence": f"{score:.2%}" if score is None else "0.0%",
+            "confidence": f"{score:.2%}" if score is not None else "0.0%",
             "model_type": self.model_type
         }
