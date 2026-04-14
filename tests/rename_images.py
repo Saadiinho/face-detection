@@ -16,7 +16,6 @@ import argparse
 from pathlib import Path
 from typing import List
 
-
 # Extensions d'images supportées
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
 

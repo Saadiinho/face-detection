@@ -31,6 +31,10 @@ test:
 black:
 	black .
 
+## black-check: check black for all project
+.PHONY: black-check
+black-check:
+	black --check src/ tests/
 
 # ==================================================================================== #
 # FREEZE
@@ -40,4 +44,9 @@ black:
 .PHONY: freeze
 freeze:
 	pip freeze > requirements.txt
+
+## freeze-dev: Add dependancies to requirements.txt
+.PHONY: freeze-dev
+freeze-dev:
+	pip freeze > requirements-dev.txt
 
