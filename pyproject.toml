@@ -1,0 +1,53 @@
+# pyproject.toml
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "niyya-face-detector"           # ← NOM UNIQUE sur PyPI (à vérifier !)
+version = "0.1.0"                        # ← Version initiale
+description = "Module de détection faciale pour la modération de contenu"
+readme = "README.md"
+requires-python = ">=3.9"                # ← Version minimale de Python
+license = {file = "LICENSE"}
+authors = [
+  {name = "Saad RAFIQUL", email = "saad.rafiqul1@gmail.com"},
+]
+keywords = ["face-detection", "computer-vision", "opencv", "ai", "moderation"]
+classifiers = [
+    "Development Status :: 4 - Beta",  # ← Change à 4-Beta ou 5-Production quand prêt
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+
+# Dépendances runtime (seulement ce qui est requis pour importer le package)
+dependencies = [
+    "opencv-python-headless>=4.8.0",
+    "numpy>=1.24.0",
+    "Pillow>=9.5.0",
+    "insightface>=0.7.3",
+    "onnxruntime>=1.16.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Saadiinho/niyya-face-detection"
+Bug Tracker = "https://github.com/Saadiinho/niyya-face-detection/issues"
+Documentation = "https://saadiinho.github.io/niyya-face-detection/"
+Repository = "https://github.com/Saadiinho/niyya-face-detection.git"
+
+[project.optional-dependencies]
+# Pour le développement
+dev = [
+    "pytest>=7.3.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=2.0.0",
+]
