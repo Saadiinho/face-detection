@@ -1,0 +1,22 @@
+/* docs/source/_static/custom.css */
+
+/* Couleur principale */
+.wy-side-nav-search {
+    background-color: #2980B9;
+}
+
+.wy-nav-top {
+    background-color: #2980B9;
+}
+
+/* Code blocks */
+.rst-content code {
+    background: #f0f0f0;
+    padding: 2px 5px;
+    border-radius: 3px;
+}
+
+/* Tables */
+.rst-content table.docutils {
+    border: 1px solid #e1e4e5;
+}
