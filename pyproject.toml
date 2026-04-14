@@ -36,10 +36,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Saadiinho/niyya-face-detection"
-Bug Tracker = "https://github.com/Saadiinho/niyya-face-detection/issues"
-Documentation = "https://saadiinho.github.io/niyya-face-detection/"
-Repository = "https://github.com/Saadiinho/niyya-face-detection.git"
+"Homepage" = "https://github.com/Saadiinho/niyya-face-detection"
+"Bug Tracker" = "https://github.com/Saadiinho/niyya-face-detection/issues"
+"Documentation" = "https://saadiinho.github.io/niyya-face-detection/"
+"Repository" = "https://github.com/Saadiinho/niyya-face-detection.git"
 
 [project.optional-dependencies]
 # Pour le développement
