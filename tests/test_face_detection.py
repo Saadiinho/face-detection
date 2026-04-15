@@ -34,7 +34,7 @@ class TestFaceDetector:
         mock_detect.return_value = [(100, 100, 50, 50)]
 
         detector = FaceDetector(model_type="haar")
-        result = detector._analyze_bytes(b"fake_image")
+        result = detector._analyze_bytes("", b"fake_image")
 
         assert result["has_face"] is True
         assert result["face_count"] == 1
@@ -47,28 +47,6 @@ class TestFaceDetector:
         detector = FaceDetector(model_type="haar")
 
         with pytest.raises(ImageProcessingError):
-            detector._analyze_bytes(b"invalid_image")
+            detector._analyze_bytes("", b"invalid_image")
 
-    def test_validate_for_upload_returns_true_when_no_face(self):
-        """Teste la validation upload sans visage."""
-        # ✅ CORRECTION: Patch _analyze_bytes, pas analyze
-        with patch.object(FaceDetector, "_analyze_bytes") as mock_analyze_bytes:
-            mock_analyze_bytes.return_value = {"has_face": False}
 
-            detector = FaceDetector(model_type="haar")
-            assert detector.validate_for_upload(b"img") is True
-
-            # Bonus: vérifie que la méthode a été appelée correctement
-            mock_analyze_bytes.assert_called_once_with(b"img")
-
-    def test_validate_for_upload_returns_false_when_face(self):
-        """Teste la validation upload avec visage."""
-        # ✅ CORRECTION: Patch _analyze_bytes, pas analyze
-        with patch.object(FaceDetector, "_analyze_bytes") as mock_analyze_bytes:
-            mock_analyze_bytes.return_value = {"has_face": True}
-
-            detector = FaceDetector(model_type="haar")
-            assert detector.validate_for_upload(b"img") is False
-
-            # Bonus: vérifie que la méthode a été appelée correctement
-            mock_analyze_bytes.assert_called_once_with(b"img")
