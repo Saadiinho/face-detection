@@ -217,20 +217,6 @@ class FaceDetector:
         except IOError as e:
             raise ImageProcessingError(f"Erreur de lecture: {str(e)}")
 
-    def validate_for_upload(self, image_content: bytes) -> bool:
-        """
-        Vérifie si une image est valide pour upload (aucun visage).
-
-        Args:
-            image_content: Contenu binaire de l'image
-
-        Returns:
-            True si l'image peut être uploadée (pas de visage),
-            False sinon
-        """
-        result = self._analyze_bytes(image_content)
-        return not result["has_face"]
-
 
 class AdvancedFaceDetector:
     """Détecteur avancé avec RetinaFace - Meilleure détection hijab."""
