@@ -1,10 +1,3 @@
-"""
-Niyya Face Detector - Module de détection faciale.
-
-Ce module fournit une API simple pour détecter la présence de visages
-dans des images, destiné à la modération de contenu.
-"""
-
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -16,33 +9,12 @@ from .exceptions import ImageProcessingError, ModelLoadingError
 
 
 class FaceDetector:
-    """
-    Détecteur de visages pour la modération de contenu.
-
-    Ce classe analyse des images et retourne des informations sur la
-    présence de visages humains.
-
-    Example:
-        >>> detector = FaceDetector()
-        >>> result = detector.analyze(image_bytes)
-        >>> print(result['has_face'])
-        True
-    """
-
     def __init__(
         self,
         model_type: str = "haar",
         confidence_threshold: float = 0.5,
         model_path: Optional[Path] = None,
     ):
-        """
-        Initialise le détecteur de visages.
-
-        Args:
-            model_type: Type de modèle ("haar" ou "dnn")
-            confidence_threshold: Seuil de confiance pour DNN (0.0 à 1.0)
-            model_path: Chemin vers les modèles DNN (optionnel)
-        """
         self.model_type = model_type
         self.confidence_threshold = confidence_threshold
         self._model_path = model_path
@@ -55,7 +27,6 @@ class FaceDetector:
             raise ValueError(f"Type de modèle non supporté: {model_type}")
 
     def _init_haar_model(self) -> None:
-        """Initialise le modèle Haar Cascades."""
         try:
             self._cascade = cv2.CascadeClassifier(
                 cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
@@ -64,7 +35,6 @@ class FaceDetector:
             raise ModelLoadingError(f"Échec chargement Haar: {str(e)}")
 
     def _init_dnn_model(self) -> None:
-        """Initialise le modèle DNN (CNN)."""
         if not self._model_path:
             raise ModelLoadingError("Chemin modèle requis pour DNN")
 
@@ -77,22 +47,6 @@ class FaceDetector:
             raise ModelLoadingError(f"Échec chargement DNN: {str(e)}")
 
     def _analyze_bytes(self, image_content: bytes) -> Dict[str, Any]:
-        """
-        Analyse une image pour détecter des visages.
-
-        Args:
-            image_content: Contenu binaire de l'image
-
-        Returns:
-            Dict contenant:
-                - has_face (bool): Présence d'au moins un visage
-                - face_count (int): Nombre de visages détectés
-                - faces (list): Coordonnées des visages [(x, y, w, h), ...]
-                - confidence (float): Confiance moyenne des détections
-
-        Raises:
-            ImageProcessingError: Si l'image ne peut être traitée
-        """
         try:
             # Décodage de l'image
             nparr = np.frombuffer(image_content, np.uint8)
@@ -161,33 +115,6 @@ class FaceDetector:
         return faces, avg_confidence
 
     def analyze(self, image_path: str) -> Dict[str, Any]:
-        """
-        Analyse une image depuis un chemin de fichier.
-
-        Méthode principale d'entrée pour analyser une image stockée sur disque.
-        Lit le fichier, le convertit en bytes, puis appelle analyze_bytes.
-
-        Args:
-            image_path: Chemin absolu ou relatif vers le fichier image
-
-        Returns:
-            Dict contenant:
-                - has_face (bool): Présence d'au moins un visage
-                - face_count (int): Nombre de visages détectés
-                - faces (list): Coordonnées des visages [(x, y, w, h), ...]
-                - confidence (float): Confiance moyenne des détections
-                - model_type (str): Type de modèle utilisé
-
-        Raises:
-            FileNotFoundError: Si le fichier n'existe pas
-            ImageProcessingError: Si l'image ne peut être traitée
-
-        Example:
-            >>> detector = FaceDetector(model_type="haar")
-            >>> result = detector.analyze("tests/fixtures/face1.jpg")
-            >>> print(result["has_face"])
-            True
-        """
         from pathlib import Path
 
         image_file = Path(image_path)
@@ -219,8 +146,6 @@ class FaceDetector:
 
 
 class AdvancedFaceDetector:
-    """Détecteur avancé avec RetinaFace - Meilleure détection hijab."""
-
     def __init__(self, verbose: bool = False):
         # Initialisation de RetinaFace
         self.app = FaceAnalysis(allowed_modules=["detection"], verbose=verbose)
@@ -228,7 +153,6 @@ class AdvancedFaceDetector:
         self.model_type = "RetinaFace"
 
     def analyze(self, image_path: str):
-        """Analyse une image."""
         img = cv2.imread(image_path)
         faces = self.app.get(img)
 
