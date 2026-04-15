@@ -1,3 +1,5 @@
+import os
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -5,6 +7,7 @@ import cv2
 import numpy as np
 from insightface.app import FaceAnalysis
 
+from .auto_blur import auto_blur_faces
 from .exceptions import ImageProcessingError, ModelLoadingError
 
 
@@ -26,6 +29,10 @@ class FaceDetector:
         else:
             raise ValueError(f"Type de modèle non supporté: {model_type}")
 
+    ########################
+    ##   Initialisation   ##
+    ########################
+
     def _init_haar_model(self) -> None:
         try:
             self._cascade = cv2.CascadeClassifier(
@@ -46,32 +53,9 @@ class FaceDetector:
         except Exception as e:
             raise ModelLoadingError(f"Échec chargement DNN: {str(e)}")
 
-    def _analyze_bytes(self, image_content: bytes) -> Dict[str, Any]:
-        try:
-            # Décodage de l'image
-            nparr = np.frombuffer(image_content, np.uint8)
-            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-            if img is None:
-                raise ImageProcessingError("Impossible de décoder l'image")
-
-            # Analyse selon le modèle
-            if self.model_type == "haar":
-                faces, confidence = self._analyze_haar(img)
-            else:
-                faces, confidence = self._analyze_dnn(img)
-
-            return {
-                "has_face": len(faces) > 0,
-                "face_count": len(faces),
-                "confidence": confidence,
-                "model_type": self.model_type,
-            }
-
-        except ImageProcessingError:
-            raise
-        except Exception as e:
-            raise ImageProcessingError(f"Erreur traitement: {str(e)}")
+    #########################
+    ##       Analyse       ##
+    #########################
 
     def _analyze_haar(self, img: np.ndarray) -> tuple:
         """Analyse avec Haar Cascades."""
@@ -114,6 +98,71 @@ class FaceDetector:
 
         return faces, avg_confidence
 
+    def _analyze_bytes(self, image_path: str, image_content: bytes) -> Dict[str, Any]:
+        try:
+            # Décodage de l'image
+            nparr = np.frombuffer(image_content, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            if img is None:
+                raise ImageProcessingError("Impossible de décoder l'image")
+
+            # Analyse selon le modèle
+            if self.model_type == "haar":
+                faces_rects, raw_confidence = self._analyze_haar(img)
+            else:
+                faces_rects, raw_confidence = self._analyze_dnn(img)
+
+            # --- CORRECTION ICI : Gestion flexible des confiances ---
+            faces_data = []
+
+            # Normaliser raw_confidence en liste si ce n'en est pas une
+            if isinstance(raw_confidence, list):
+                conf_list = raw_confidence
+            elif isinstance(raw_confidence, (int, float)):
+                # Si c'est un seul nombre, on crée une liste remplie de ce nombre
+                # pour chaque visage détecté
+                conf_list = [raw_confidence] * len(faces_rects)
+            else:
+                # Fallback si rien n'est retourné
+                conf_list = [0.0] * len(faces_rects)
+
+            # Construction de la liste détaillée
+            for i, rect in enumerate(faces_rects):
+                # Sécurisation de l'accès à la confiance
+                conf_val = conf_list[i] if i < len(conf_list) else 0.0
+
+                # Conversion du rectangle en liste standard [x1, y1, x2, y2]
+                # Si rect est un tuple numpy (x,y,w,h), convertissez-le si nécessaire
+                if hasattr(rect, 'tolist'):
+                    bbox = rect.tolist()
+                else:
+                    bbox = list(rect)
+
+                faces_data.append({
+                    "bbox": bbox,
+                    "confidence": float(conf_val)
+                })
+
+            # Calcul d'une confiance globale (le max des confiances trouvées)
+            global_confidence = max([f['confidence'] for f in faces_data]) if faces_data else 0.0
+
+            return {
+                "image": image_path,
+                "has_face": len(faces_data) > 0,
+                "face_count": len(faces_data),
+                "confidence": global_confidence,
+                "model_type": self.model_type,
+                "faces": faces_data  # C'est cette liste qui servira au floutage
+            }
+
+        except ImageProcessingError:
+            raise
+        except Exception as e:
+            import traceback
+            traceback.print_exc()  # Pour voir l'erreur exacte dans les logs
+            raise ImageProcessingError(f"Erreur traitement: {str(e)}")
+
     def analyze(self, image_path: str) -> Dict[str, Any]:
         from pathlib import Path
 
@@ -137,7 +186,7 @@ class FaceDetector:
                 raise ImageProcessingError(f"Le fichier '{image_path}' est vide")
 
             # Appel de la méthode d'analyse existante
-            return self._analyze_bytes(image_bytes)
+            return self._analyze_bytes(image_path, image_bytes)
 
         except PermissionError:
             raise ImageProcessingError(f"Permission refusée pour lire '{image_path}'")
@@ -147,27 +196,98 @@ class FaceDetector:
 
 class AdvancedFaceDetector:
     def __init__(self, verbose: bool = False):
+        """
+        Initialise le détecteur RetinaFace via InsightFace.
+        """
         # Initialisation de RetinaFace
         self.app = FaceAnalysis(allowed_modules=["detection"], verbose=verbose)
-        self.app.prepare(ctx_id=0, det_size=(640, 640))
+        # ctx_id=-1 pour CPU, 0 pour GPU si disponible
+        # det_size=(640, 640) est un bon compromis précision/vitesse
+        self.app.prepare(ctx_id=-1, det_size=(640, 640))
         self.model_type = "RetinaFace"
 
-    def analyze(self, image_path: str):
+    def analyze(self, image_path: str) -> Dict[str, Any]:
+        """
+        Analyse l'image et retourne les données structurées pour le floutage.
+        """
         img = cv2.imread(image_path)
+
+        if img is None:
+            return {
+                "image": image_path,
+                "has_face": False,
+                "face_count": 0,
+                "confidence": 0.0,
+                "model_type": self.model_type,
+                "faces": []
+            }
+
+        # Détection des visages
         faces = self.app.get(img)
 
-        score = None
+        faces_data = []
+        max_confidence = 0.0
+
         for i, face in enumerate(faces):
-            bbox = face["bbox"].astype(int)
-            score = face["det_score"]
-            print(f"   Visage {i + 1}: confiance={score:.2%}")
-            print(
-                f"   Coordonnées: x={bbox[0]}, y={bbox[1]}, w={bbox[2] - bbox[0]}, h={bbox[3] - bbox[1]}"
-            )
+            # InsightFace retourne bbox sous forme [x1, y1, x2, y2] en float
+            bbox = face["bbox"].astype(int).tolist()
+            score = float(face["det_score"])
+
+            if score > max_confidence:
+                max_confidence = score
+
+            # On construit le dictionnaire exactement comme attendu par auto_blur_faces
+            faces_data.append({
+                "bbox": bbox,  # [x1, y1, x2, y2]
+                "confidence": score
+            })
 
         return {
-            "has_face": len(faces) > 0,
-            "face_count": len(faces),
-            "confidence": f"{score:.2%}" if score is not None else "0.0%",
+            "image": image_path,
+            "has_face": len(faces_data) > 0,
+            "face_count": len(faces_data),
+            "confidence": max_confidence,
             "model_type": self.model_type,
+            "faces": faces_data
+        }
+
+    def blur_faces(self, image_path: str, filename: str = "result.jpg") -> Optional[Dict[str, Any]]:
+        # 1. Analyse
+        result_analysis = self.analyze(image_path)
+
+        if not result_analysis.get('has_face', False):
+            return None
+
+        blur_result = auto_blur_faces(image_path, result_analysis['faces'])
+
+        if not blur_result.was_blurred:
+            return None
+
+        # 3. Préparation de la sauvegarde
+        date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Création dynamique du dossier s'il n'existe pas
+        output_dir = Path("results") / date_str
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Gestion de l'extension si l'utilisateur ne la met pas
+        if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            filename += ".jpg"
+
+        final_path = output_dir / filename
+
+        # 4. Sauvegarde
+        try:
+            # blur_result.image est un objet PIL.Image
+            blur_result.image.save(str(final_path))
+        except Exception as e:
+            print(f"Erreur lors de la sauvegarde : {e}")
+            return None
+
+        # 5. Retour structuré
+        return {
+            "real_image": str(Path(image_path).resolve()),
+            "blurred_image": str(final_path.resolve()),
+            "done": True,
+            "faces_detected": blur_result.faces_detected
         }
