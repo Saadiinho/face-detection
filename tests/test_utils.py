@@ -8,9 +8,14 @@ import pytest
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
 
 
-def get_all_images() -> List[Path]:
+def get_all_images(type_folder: int = 0) -> List[Path]:
     test_file_dir = Path(__file__).parent
-    images_folder = os.path.join(test_file_dir, "images")
+    folder = ""
+    if type_folder == 0:
+        folder = "faces"
+    elif type_folder == 1:
+        folder = "only-eyes"
+    images_folder = os.path.join(test_file_dir, "images", folder)
     if not os.path.exists(images_folder):
         pytest.skip(f"{images_folder} n'existe pas")
     valid_extensions = "jpg"
@@ -117,10 +122,10 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Exemples:
-    python rename_test_images.py --folder tests/fixtures/with_face --type face
-    python rename_test_images.py --folder tests/fixtures/without_face --type noface
-    python rename_test_images.py --folder ./images --type face --start 10
-    python rename_test_images.py --folder ./images --type face --dry-run
+    python rename_test_images.py --folder tests/fixtures/with_faces --type faces
+    python rename_test_images.py --folder tests/fixtures/without_faces --type nofaces
+    python rename_test_images.py --folder ./images --type faces --start 10
+    python rename_test_images.py --folder ./images --type faces --dry-run
         """,
     )
 
@@ -136,8 +141,8 @@ Exemples:
         "--type",
         "-t",
         required=True,
-        choices=["face", "noface", "eyes"],
-        help="Type d'images: 'face' (avec visage) ou 'noface' (sans visage) ou 'eyes' (seulement les yeux)",
+        choices=["faces", "nofaces", "eyes"],
+        help="Type d'images: 'faces' (avec visage) ou 'nofaces' (sans visage) ou 'eyes' (seulement les yeux)",
     )
 
     parser.add_argument(
@@ -158,10 +163,10 @@ Exemples:
     args = parser.parse_args()
 
     # Détermination du préfixe selon le type
-    if args.type == "face":
-        prefix = "image_with_face"
-    elif args.type == "noface":
-        prefix = "image_without_face"
+    if args.type == "faces":
+        prefix = "image_with_faces"
+    elif args.type == "nofaces":
+        prefix = "image_without_faces"
     elif args.type == "eyes":
         prefix = "image_only_eyes"
     else:
