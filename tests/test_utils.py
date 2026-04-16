@@ -136,8 +136,8 @@ Exemples:
         "--type",
         "-t",
         required=True,
-        choices=["face", "noface"],
-        help="Type d'images: 'face' (avec visage) ou 'noface' (sans visage)",
+        choices=["face", "noface", "eyes"],
+        help="Type d'images: 'face' (avec visage) ou 'noface' (sans visage) ou 'eyes' (seulement les yeux)",
     )
 
     parser.add_argument(
@@ -160,8 +160,12 @@ Exemples:
     # Détermination du préfixe selon le type
     if args.type == "face":
         prefix = "image_with_face"
-    else:
+    elif args.type == "noface":
         prefix = "image_without_face"
+    elif args.type == "eyes":
+        prefix = "image_only_eyes"
+    else:
+        prefix = "image"
 
     print("=" * 60)
     print("🎯 NIYYA FACE DETECTOR - Script de renommage d'images")

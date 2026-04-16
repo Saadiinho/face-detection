@@ -50,3 +50,11 @@ freeze:
 freeze-dev:
 	pip freeze > requirements-dev.txt
 
+# ==================================================================================== #
+# UTILS
+# ==================================================================================== #
+
+## rename-eyes: Rename all images without eyes
+.PHONY: rename-eyes
+rename-eyes:
+	python tests/test_utils.py -f ./tests/images/only-eyes -t eyes
