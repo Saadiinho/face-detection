@@ -1,4 +1,3 @@
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional
@@ -134,18 +133,17 @@ class FaceDetector:
 
                 # Conversion du rectangle en liste standard [x1, y1, x2, y2]
                 # Si rect est un tuple numpy (x,y,w,h), convertissez-le si nécessaire
-                if hasattr(rect, 'tolist'):
+                if hasattr(rect, "tolist"):
                     bbox = rect.tolist()
                 else:
                     bbox = list(rect)
 
-                faces_data.append({
-                    "bbox": bbox,
-                    "confidence": float(conf_val)
-                })
+                faces_data.append({"bbox": bbox, "confidence": float(conf_val)})
 
             # Calcul d'une confiance globale (le max des confiances trouvées)
-            global_confidence = max([f['confidence'] for f in faces_data]) if faces_data else 0.0
+            global_confidence = (
+                max([f["confidence"] for f in faces_data]) if faces_data else 0.0
+            )
 
             return {
                 "image": image_path,
@@ -153,13 +151,14 @@ class FaceDetector:
                 "face_count": len(faces_data),
                 "confidence": global_confidence,
                 "model_type": self.model_type,
-                "faces": faces_data  # C'est cette liste qui servira au floutage
+                "faces": faces_data,  # C'est cette liste qui servira au floutage
             }
 
         except ImageProcessingError:
             raise
         except Exception as e:
             import traceback
+
             traceback.print_exc()  # Pour voir l'erreur exacte dans les logs
             raise ImageProcessingError(f"Erreur traitement: {str(e)}")
 
@@ -193,22 +192,24 @@ class FaceDetector:
         except IOError as e:
             raise ImageProcessingError(f"Erreur de lecture: {str(e)}")
 
-    def blur_faces(self, image_path: str, filename: str = "result.jpg") -> Optional[Dict[str, Any]]:
+    def blur_faces(
+        self, image_path: str, filename: str = "result.jpg"
+    ) -> Optional[Dict[str, Any]]:
         # Analyze image
         result_analysis = self.analyze(image_path)
-        if not result_analysis.get('has_face', False):
-            return None # TODO Ajouter des logs
+        if not result_analysis.get("has_face", False):
+            return None  # TODO Ajouter des logs
 
         # Floutage de l'image
-        blur_result = auto_blur_faces(str(image_path), result_analysis['faces'])
+        blur_result = auto_blur_faces(str(image_path), result_analysis["faces"])
         if not blur_result.was_blurred:
-            return None # TODO Ajouter des logs
+            return None  # TODO Ajouter des logs
 
         # 3. Préparation de la sauvegarde
         date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_dir = Path("results") / date_str
         output_dir.mkdir(parents=True, exist_ok=True)
-        if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+        if not filename.lower().endswith((".png", ".jpg", ".jpeg")):
             filename += ".jpg"
 
         final_path = output_dir / filename
@@ -219,14 +220,14 @@ class FaceDetector:
             blur_result.image.save(final_path)
         except Exception as e:
             print(f"Erreur lors de la sauvegarde : {e}")
-            return None # TODO Ajouter des logs
+            return None  # TODO Ajouter des logs
 
         # 5. Retour structuré
         return {
             "real_image": str(Path(image_path).resolve()),
             "blurred_image": str(final_path.resolve()),
             "done": True,
-            "faces_detected": blur_result.faces_detected
+            "faces_detected": blur_result.faces_detected,
         }
 
 
@@ -251,7 +252,7 @@ class AdvancedFaceDetector:
                 "face_count": 0,
                 "confidence": 0.0,
                 "model_type": self.model_type,
-                "faces": []
+                "faces": [],
             }
         # Détection des visages
         faces = self.app.get(img)
@@ -263,35 +264,34 @@ class AdvancedFaceDetector:
             score = float(face["det_score"])
             if score > max_confidence:
                 max_confidence = score
-            faces_data.append({
-                "bbox": bbox,  # [x1, y1, x2, y2]
-                "confidence": score
-            })
+            faces_data.append({"bbox": bbox, "confidence": score})  # [x1, y1, x2, y2]
         return {
             "image": image_path,
             "has_face": len(faces_data) > 0,
             "face_count": len(faces_data),
             "confidence": max_confidence,
             "model_type": self.model_type,
-            "faces": faces_data
+            "faces": faces_data,
         }
 
-    def blur_faces(self, image_path: str, filename: str = "result.jpg") -> Optional[Dict[str, Any]]:
+    def blur_faces(
+        self, image_path: str, filename: str = "result.jpg"
+    ) -> Optional[Dict[str, Any]]:
         # Analyze image
         result_analysis = self.analyze(image_path)
-        if not result_analysis.get('has_face', False):
-            return None # TODO Ajouter des logs
+        if not result_analysis.get("has_face", False):
+            return None  # TODO Ajouter des logs
 
         # Floutage de l'image
-        blur_result = auto_blur_faces(str(image_path), result_analysis['faces'])
+        blur_result = auto_blur_faces(str(image_path), result_analysis["faces"])
         if not blur_result.was_blurred:
-            return None # TODO Ajouter des logs
+            return None  # TODO Ajouter des logs
 
         # 3. Préparation de la sauvegarde
         date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_dir = Path("results") / date_str
         output_dir.mkdir(parents=True, exist_ok=True)
-        if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+        if not filename.lower().endswith((".png", ".jpg", ".jpeg")):
             filename += ".jpg"
 
         final_path = output_dir / filename
@@ -302,12 +302,12 @@ class AdvancedFaceDetector:
             blur_result.image.save(final_path)
         except Exception as e:
             print(f"Erreur lors de la sauvegarde : {e}")
-            return None # TODO Ajouter des logs
+            return None  # TODO Ajouter des logs
 
         # 5. Retour structuré
         return {
             "real_image": str(Path(image_path).resolve()),
             "blurred_image": str(final_path.resolve()),
             "done": True,
-            "faces_detected": blur_result.faces_detected
+            "faces_detected": blur_result.faces_detected,
         }

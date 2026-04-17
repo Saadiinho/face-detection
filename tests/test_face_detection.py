@@ -48,5 +48,3 @@ class TestFaceDetector:
 
         with pytest.raises(ImageProcessingError):
             detector._analyze_bytes("", b"invalid_image")
-
-

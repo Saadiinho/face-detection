@@ -3,18 +3,46 @@ from src.face_detection.detector import FaceDetector, AdvancedFaceDetector
 from tests.test_utils import get_all_images
 
 TEST_SCENARIOS = [
-    ("haar_faces", 0, FaceDetector, 0.99, False),            # Dossier "faces", Modèle Haar,   Seuil 90%, Flouttage False
-    ("haar_faces", 1, FaceDetector, 0.99, False),            # Dossier "eyes",  Modèle Haar,   Seuil 90%, Flouttage False
-    ("retina_faces", 0, AdvancedFaceDetector, 0.99, False),  # Dossier "faces", Modèle Retina, Seuil 95%, Flouttage False
-    ("retina_eyes", 1, AdvancedFaceDetector, 0.99, False),   # Dossier "eyes",  Modèle Retina, Seuil 90%, Flouttage False
+    (
+        "haar_faces",
+        0,
+        FaceDetector,
+        0.99,
+        False,
+    ),  # Dossier "faces", Modèle Haar,   Seuil 90%, Flouttage False
+    (
+        "haar_faces",
+        1,
+        FaceDetector,
+        0.99,
+        False,
+    ),  # Dossier "eyes",  Modèle Haar,   Seuil 90%, Flouttage False
+    (
+        "retina_faces",
+        0,
+        AdvancedFaceDetector,
+        0.99,
+        False,
+    ),  # Dossier "faces", Modèle Retina, Seuil 95%, Flouttage False
+    (
+        "retina_eyes",
+        1,
+        AdvancedFaceDetector,
+        0.99,
+        False,
+    ),  # Dossier "eyes",  Modèle Retina, Seuil 90%, Flouttage False
 ]
 
 
-@pytest.mark.parametrize("test_id, folder_type, detector_class, threshold, blur", TEST_SCENARIOS)
+@pytest.mark.parametrize(
+    "test_id, folder_type, detector_class, threshold, blur", TEST_SCENARIOS
+)
 class TestFaceDetectorRealImages:
     """Tests de détection sur images réelles avec différents modèles."""
 
-    def test_detection_accuracy(self, test_id, folder_type, detector_class, threshold, blur):
+    def test_detection_accuracy(
+        self, test_id, folder_type, detector_class, threshold, blur
+    ):
         # 1. Récupérer les images selon le type de dossier
         image_files = get_all_images(folder_type)
 
@@ -59,15 +87,15 @@ class TestFaceDetectorRealImages:
 
         # 5. Assertion dynamique avec détails complets
         assert accuracy >= threshold, (
-                f"\n❌ ÉCHEC DU TEST [{test_id}]\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"📊 Statistiques:\n"
-                f"   • Taux de détection: {accuracy:.2%}\n"
-                f"   • Seuil requis:      {threshold:.2%}\n"
-                f"   • Images détectées:  {nb_detected} / {total_images}\n"
-                f"   • Images ratées:     {nb_failed} / {total_images}\n"
-                f"\n"
-                f"🚫 Images non validées ({nb_failed}):\n" +
-                "\n".join([f"   - {img}" for img in failed_images]) +
-                f"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            f"\n❌ ÉCHEC DU TEST [{test_id}]\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"📊 Statistiques:\n"
+            f"   • Taux de détection: {accuracy:.2%}\n"
+            f"   • Seuil requis:      {threshold:.2%}\n"
+            f"   • Images détectées:  {nb_detected} / {total_images}\n"
+            f"   • Images ratées:     {nb_failed} / {total_images}\n"
+            f"\n"
+            f"🚫 Images non validées ({nb_failed}):\n"
+            + "\n".join([f"   - {img}" for img in failed_images])
+            + f"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         )

@@ -27,9 +27,9 @@ class BlurResult:
 
 
 def auto_blur_faces(
-        image: Union[str, Path, Image.Image],
-        detections: List[dict],
-        config: BlurConfig | None = None,
+    image: Union[str, Path, Image.Image],
+    detections: List[dict],
+    config: BlurConfig | None = None,
 ) -> BlurResult:
     cfg = config or BlurConfig()
 
@@ -58,10 +58,7 @@ def auto_blur_faces(
     # Aucun visage valide → retour direct
     if not valid_detections:
         return BlurResult(
-            image=img,
-            faces_detected=0,
-            was_blurred=False,
-            bounding_boxes=[]
+            image=img, faces_detected=0, was_blurred=False, bounding_boxes=[]
         )
 
     # Appliquer le flou sur chaque bbox
@@ -93,7 +90,5 @@ def auto_blur_faces(
         image=img,
         faces_detected=len(valid_detections),
         was_blurred=True,
-        bounding_boxes=valid_detections
+        bounding_boxes=valid_detections,
     )
-
-

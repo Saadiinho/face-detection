@@ -49,8 +49,7 @@ def get_image_files(folder: Path) -> List[Path]:
 def rename_images(
     folder: Path, prefix: str, start_index: int = 1, dry_run: bool = False
 ) -> None:
-    """
-    """
+    """ """
     # Récupération des fichiers
     image_files = get_image_files(folder)
 
