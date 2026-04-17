@@ -193,6 +193,42 @@ class FaceDetector:
         except IOError as e:
             raise ImageProcessingError(f"Erreur de lecture: {str(e)}")
 
+    def blur_faces(self, image_path: str, filename: str = "result.jpg") -> Optional[Dict[str, Any]]:
+        # Analyze image
+        result_analysis = self.analyze(image_path)
+        if not result_analysis.get('has_face', False):
+            return None # TODO Ajouter des logs
+
+        # Floutage de l'image
+        blur_result = auto_blur_faces(str(image_path), result_analysis['faces'])
+        if not blur_result.was_blurred:
+            return None # TODO Ajouter des logs
+
+        # 3. Préparation de la sauvegarde
+        date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_dir = Path("results") / date_str
+        output_dir.mkdir(parents=True, exist_ok=True)
+        if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            filename += ".jpg"
+
+        final_path = output_dir / filename
+
+        # 4. Sauvegarde
+        try:
+            # blur_result.image est un objet PIL.Image
+            blur_result.image.save(final_path)
+        except Exception as e:
+            print(f"Erreur lors de la sauvegarde : {e}")
+            return None # TODO Ajouter des logs
+
+        # 5. Retour structuré
+        return {
+            "real_image": str(Path(image_path).resolve()),
+            "blurred_image": str(final_path.resolve()),
+            "done": True,
+            "faces_detected": blur_result.faces_detected
+        }
+
 
 class AdvancedFaceDetector:
     def __init__(self, verbose: bool = False):
