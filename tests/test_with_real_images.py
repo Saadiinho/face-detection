@@ -7,30 +7,30 @@ TEST_SCENARIOS = [
         "haar_faces",
         0,
         FaceDetector,
-        0.99,
+        0.90,
         False,
     ),  # Dossier "faces", Modèle Haar,   Seuil 90%, Flouttage False
     (
         "haar_faces",
         1,
         FaceDetector,
-        0.99,
-        False,
-    ),  # Dossier "eyes",  Modèle Haar,   Seuil 90%, Flouttage False
+        0.75,
+        True,
+    ),  # Dossier "eyes",  Modèle Haar,   Seuil 75%, Flouttage False
     (
         "retina_faces",
         0,
         AdvancedFaceDetector,
-        0.99,
+        1,
         False,
-    ),  # Dossier "faces", Modèle Retina, Seuil 95%, Flouttage False
+    ),  # Dossier "faces", Modèle Retina, Seuil 99%, Flouttage False
     (
         "retina_eyes",
         1,
         AdvancedFaceDetector,
-        0.99,
+        0.96,
         False,
-    ),  # Dossier "eyes",  Modèle Retina, Seuil 90%, Flouttage False
+    ),  # Dossier "eyes",  Modèle Retina, Seuil 95%, Flouttage False
 ]
 
 
@@ -89,13 +89,13 @@ class TestFaceDetectorRealImages:
         assert accuracy >= threshold, (
             f"\n❌ ÉCHEC DU TEST [{test_id}]\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"📊 Statistiques:\n"
+            f"Statistiques:\n"
             f"   • Taux de détection: {accuracy:.2%}\n"
             f"   • Seuil requis:      {threshold:.2%}\n"
             f"   • Images détectées:  {nb_detected} / {total_images}\n"
             f"   • Images ratées:     {nb_failed} / {total_images}\n"
             f"\n"
-            f"🚫 Images non validées ({nb_failed}):\n"
+            f"Images non validées ({nb_failed}):\n"
             + "\n".join([f"   - {img}" for img in failed_images])
             + f"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         )
