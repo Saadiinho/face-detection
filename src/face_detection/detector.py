@@ -207,11 +207,7 @@ class AdvancedFaceDetector:
         self.model_type = "RetinaFace"
 
     def analyze(self, image_path: str) -> Dict[str, Any]:
-        """
-        Analyse l'image et retourne les données structurées pour le floutage.
-        """
         img = cv2.imread(image_path)
-
         if img is None:
             return {
                 "image": image_path,
@@ -221,27 +217,20 @@ class AdvancedFaceDetector:
                 "model_type": self.model_type,
                 "faces": []
             }
-
         # Détection des visages
         faces = self.app.get(img)
-
         faces_data = []
         max_confidence = 0.0
-
         for i, face in enumerate(faces):
             # InsightFace retourne bbox sous forme [x1, y1, x2, y2] en float
             bbox = face["bbox"].astype(int).tolist()
             score = float(face["det_score"])
-
             if score > max_confidence:
                 max_confidence = score
-
-            # On construit le dictionnaire exactement comme attendu par auto_blur_faces
             faces_data.append({
                 "bbox": bbox,  # [x1, y1, x2, y2]
                 "confidence": score
             })
-
         return {
             "image": image_path,
             "has_face": len(faces_data) > 0,
@@ -252,25 +241,20 @@ class AdvancedFaceDetector:
         }
 
     def blur_faces(self, image_path: str, filename: str = "result.jpg") -> Optional[Dict[str, Any]]:
-        # 1. Analyse
+        # Analyze image
         result_analysis = self.analyze(image_path)
-
         if not result_analysis.get('has_face', False):
-            return None
+            return None # TODO Ajouter des logs
 
-        blur_result = auto_blur_faces(image_path, result_analysis['faces'])
-
+        # Floutage de l'image
+        blur_result = auto_blur_faces(str(image_path), result_analysis['faces'])
         if not blur_result.was_blurred:
-            return None
+            return None # TODO Ajouter des logs
 
         # 3. Préparation de la sauvegarde
         date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-        # Création dynamique du dossier s'il n'existe pas
         output_dir = Path("results") / date_str
         output_dir.mkdir(parents=True, exist_ok=True)
-
-        # Gestion de l'extension si l'utilisateur ne la met pas
         if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
             filename += ".jpg"
 
@@ -279,10 +263,10 @@ class AdvancedFaceDetector:
         # 4. Sauvegarde
         try:
             # blur_result.image est un objet PIL.Image
-            blur_result.image.save(str(final_path))
+            blur_result.image.save(final_path)
         except Exception as e:
             print(f"Erreur lors de la sauvegarde : {e}")
-            return None
+            return None # TODO Ajouter des logs
 
         # 5. Retour structuré
         return {

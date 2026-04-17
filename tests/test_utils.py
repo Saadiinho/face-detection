@@ -8,23 +8,23 @@ import pytest
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
 
 
-def get_all_images(type_folder: int = 0) -> List[Path]:
-    test_file_dir = Path(__file__).parent
-    folder = ""
-    if type_folder == 0:
-        folder = "faces"
-    elif type_folder == 1:
-        folder = "only-eyes"
-    images_folder = os.path.join(test_file_dir, "images", folder)
-    if not os.path.exists(images_folder):
-        pytest.skip(f"{images_folder} n'existe pas")
-    valid_extensions = "jpg"
-    image_files = []
-    for image in os.listdir(images_folder):
-        if image.endswith(valid_extensions):
-            image_files.append(os.path.join(images_folder, image))
+def get_all_images(type_folder: int = 0) -> list[Path]:
+    # On récupère le dossier du script (Absolu)
+    base_dir = Path(__file__).parent
 
-    return image_files
+    # Mapping des dossiers pour éviter les if/else à rallonge
+    folders = {0: "faces", 1: "only-eyes"}
+    folder_name = folders.get(type_folder, "")
+
+    images_folder = base_dir / "images" / folder_name
+
+    # Vérification avec pathlib
+    if not images_folder.exists():
+        pytest.skip(f"{images_folder} n'existe pas")
+
+    # .glob permet de filtrer directement les fichiers
+    # "*.jpg" cherche tous les fichiers finissant par .jpg
+    return list(images_folder.glob("*.jpg"))
 
 
 def get_image_files(folder: Path) -> List[Path]:

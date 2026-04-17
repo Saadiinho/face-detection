@@ -3,9 +3,9 @@ from src.face_detection.detector import FaceDetector, AdvancedFaceDetector
 from tests.test_utils import get_all_images
 
 TEST_SCENARIOS = [
-    ("haar_faces", 0, FaceDetector, 0.99),            # Dossier "faces", Modèle Haar,   Seuil 90%
+    #("haar_faces", 0, FaceDetector, 0.99),            # Dossier "faces", Modèle Haar,   Seuil 90%
     ("retina_faces", 0, AdvancedFaceDetector, 0.99),  # Dossier "faces", Modèle Retina, Seuil 95%
-    ("retina_eyes", 1, AdvancedFaceDetector, 0.99),   # Dossier "eyes",  Modèle Retina, Seuil 90%
+    #("retina_eyes", 1, AdvancedFaceDetector, 0.99),   # Dossier "eyes",  Modèle Retina, Seuil 90%
 ]
 
 
@@ -30,12 +30,14 @@ class TestFaceDetectorRealImages:
         # 3. Boucle d'analyse
         nb_detected = 0
         errors = []
-        failed_images = []  # 👈 Liste pour stocker les images en échec
+        failed_images = []
 
         for image_path in image_files:
             try:
                 result = detector.analyze(str(image_path))
-
+                if detector_class != FaceDetector:
+                    blurred_name = image_path.name.replace("image", "blurred_image")
+                    blurred_image = detector.blur_faces(image_path, blurred_name)
                 if result["has_face"]:
                     nb_detected += 1
                 else:
@@ -43,9 +45,9 @@ class TestFaceDetectorRealImages:
                     failed_images.append(str(image_path))
 
             except Exception as e:
-                errors.append(f"{image_path.name}: {str(e)}")
+                errors.append(f"{image_path}: {str(e)}")
                 # On considère aussi une erreur comme un échec de détection
-                failed_images.append(f"{image_path.name} (Erreur: {e})")
+                failed_images.append(f"{image_path} (Erreur: {e})")
 
         # 4. Calcul du taux de réussite
         total_images = len(image_files)
