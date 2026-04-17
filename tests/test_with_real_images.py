@@ -3,17 +3,18 @@ from src.face_detection.detector import FaceDetector, AdvancedFaceDetector
 from tests.test_utils import get_all_images
 
 TEST_SCENARIOS = [
-    #("haar_faces", 0, FaceDetector, 0.99),            # Dossier "faces", Modèle Haar,   Seuil 90%
-    ("retina_faces", 0, AdvancedFaceDetector, 0.99),  # Dossier "faces", Modèle Retina, Seuil 95%
-    #("retina_eyes", 1, AdvancedFaceDetector, 0.99),   # Dossier "eyes",  Modèle Retina, Seuil 90%
+    ("haar_faces", 0, FaceDetector, 0.99, False),            # Dossier "faces", Modèle Haar,   Seuil 90%, Flouttage False
+    ("haar_faces", 1, FaceDetector, 0.99, False),            # Dossier "eyes",  Modèle Haar,   Seuil 90%, Flouttage False
+    ("retina_faces", 0, AdvancedFaceDetector, 0.99, False),  # Dossier "faces", Modèle Retina, Seuil 95%, Flouttage False
+    ("retina_eyes", 1, AdvancedFaceDetector, 0.99, False),   # Dossier "eyes",  Modèle Retina, Seuil 90%, Flouttage False
 ]
 
 
-@pytest.mark.parametrize("test_id, folder_type, detector_class, threshold", TEST_SCENARIOS)
+@pytest.mark.parametrize("test_id, folder_type, detector_class, threshold, blur", TEST_SCENARIOS)
 class TestFaceDetectorRealImages:
     """Tests de détection sur images réelles avec différents modèles."""
 
-    def test_detection_accuracy(self, test_id, folder_type, detector_class, threshold):
+    def test_detection_accuracy(self, test_id, folder_type, detector_class, threshold, blur):
         # 1. Récupérer les images selon le type de dossier
         image_files = get_all_images(folder_type)
 
@@ -35,7 +36,7 @@ class TestFaceDetectorRealImages:
         for image_path in image_files:
             try:
                 result = detector.analyze(str(image_path))
-                if detector_class != FaceDetector:
+                if blur:
                     blurred_name = image_path.name.replace("image", "blurred_image")
                     blurred_image = detector.blur_faces(image_path, blurred_name)
                 if result["has_face"]:
