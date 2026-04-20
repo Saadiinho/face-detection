@@ -1,10 +1,8 @@
-```markdown
 # Niyya Face Detector
 
 [![PyPI](https://img.shields.io/pypi/v/niyya-face-detector.svg)](https://pypi.org/project/niyya-face-detector/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/niyya-face-detector.svg)](https://pypi.org/project/niyya-face-detector/)
 [![License](https://img.shields.io/pypi/l/niyya-face-detector.svg)](https://github.com/Saadiinho/niyya-face-detector/blob/main/LICENSE)
-[![CI](https://github.com/Saadiinho/niyya-face-detector/actions/workflows/ci.yml/badge.svg)](https://github.com/Saadiinho/niyya-face-detector/actions)
 
 > Module de détection faciale pour la modération de contenu image.  
 > Supporte Haar Cascades, DNN et RetinaFace via une interface unifiée.

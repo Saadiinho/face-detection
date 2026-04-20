@@ -40,6 +40,9 @@ jobs:
       - name: Check code formatting (Black)
         run: make black-check
 
+      - name: Analyze security (Bandit)
+        run: make bandit
+
       - name: Run tests
         run: make test
 
