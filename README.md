@@ -31,7 +31,7 @@ sudo apt-get install -y libgl1-mesa-glx libglib2.0-0
 ### Détection depuis un fichier
 
 ```python
-from niyya_face_detector import FaceDetector
+from face_detection.detector import FaceDetector
 
 # Initialisation
 detector = FaceDetector(model_type="retinaface")  # ou "haar", "dnn"
@@ -42,6 +42,7 @@ result = detector.analyze("photo.jpg")
 print(f"Visage détecté: {result['has_face']}")
 print(f"Nombre de visages: {result['face_count']}")
 print(f"Confiance: {result['confidence']:.2%}")
+
 ```
 
 
