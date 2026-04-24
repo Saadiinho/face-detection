@@ -8,7 +8,7 @@ from insightface.app import FaceAnalysis
 
 from .auto_blur import auto_blur_faces
 from .exceptions import ImageProcessingError, ModelLoadingError
-from .types import DetectionResult, BlurDataResult
+from .types import DetectionResult, BlurDataResult, FaceBox
 
 
 class FaceDetector:
@@ -139,7 +139,7 @@ class FaceDetector:
         avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
         return faces, avg_confidence
 
-    def _analyze_bytes(self, image_path: str, image_content: bytes) -> Dict[str, Any]:
+    def _analyze_bytes(self, image_path: str, image_content: bytes) -> DetectionResult:
         try:
             nparr = np.frombuffer(image_content, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -185,26 +185,25 @@ class FaceDetector:
                     bbox = list(rect)
 
                 faces_data.append(
-                    {
-                        "bbox": bbox,
-                        "confidence": float(conf_val),
-                        "source": detection_source,  # Utile pour le debug
-                    }
+                    FaceBox(
+                        bbox=bbox,
+                        confidence=float(conf_val),
+                        source=detection_source,
+                    )
                 )
 
             global_confidence = (
-                max([f["confidence"] for f in faces_data]) if faces_data else 0.0
+                max([f.confidence for f in faces_data]) if faces_data else 0.0
             )
 
-            return {
-                "image": image_path,
-                "has_face": len(faces_data)
-                > 0,  # On garde has_face=True même si ce sont des yeux
-                "face_count": len(faces_data),
-                "confidence": global_confidence,
-                "model_type": detection_source,  # Indique si c'est "haar", "dnn" ou "eyes_fallback"
-                "faces": faces_data,
-            }
+            return DetectionResult(
+                image_path=image_path,
+                has_face=len(faces_data) > 0,
+                face_count=len(faces_data),
+                confidence=global_confidence,
+                model_type=detection_source,
+                faces=faces_data,
+            )
 
         except ImageProcessingError:
             raise
@@ -216,10 +215,8 @@ class FaceDetector:
 
     # ... (Les méthodes analyze() et blur_faces() restent identiques, elles utilisent le résultat formaté) ...
 
-    def analyze(self, image_path: str) -> Dict[str, Any]:
-        # (Code inchangé par rapport à ta version précédente)
+    def analyze(self, image_path: str) -> DetectionResult:
         from pathlib import Path
-
         image_file = Path(image_path)
         if not image_file.exists():
             raise FileNotFoundError(f"Le fichier '{image_path}' n'existe pas")
@@ -238,13 +235,12 @@ class FaceDetector:
 
     def blur_faces(
         self, image_path: str, filename: str = "result.jpg"
-    ) -> Optional[Dict[str, Any]]:
-        # (Code inchangé, il utilisera automatiquement les yeux si le fallback a marché)
+    ) -> Optional[BlurDataResult]:
         result_analysis = self.analyze(image_path)
-        if not result_analysis.get("has_face", False):
+        if not result_analysis.has_face:
             return None
 
-        blur_result = auto_blur_faces(str(image_path), result_analysis["faces"])
+        blur_result = auto_blur_faces(str(image_path), result_analysis.faces)
         if not blur_result.was_blurred:
             return None
 
@@ -259,16 +255,14 @@ class FaceDetector:
         try:
             blur_result.image.save(str(final_path))
         except Exception as e:
-            print(f"Erreur lors de la sauvegarde : {e}")
-            return None
-
-        return {
-            "real_image": str(image_path),
-            "blurred_image": str(final_path.resolve()),
-            "done": True,
-            "faces_detected": blur_result.faces_detected,
-            "detection_method": result_analysis["model_type"],  # Ajout info méthode
-        }
+            raise Exception(f"Erreur lors du eyes cascade : {e}")
+        return BlurDataResult(
+            real_image=str(image_path),
+            blurred_image=str(final_path.resolve()),
+            done=True,
+            faces_detected=blur_result.faces_detected,
+            detection_method=result_analysis.model_type,
+        )
 
 
 class AdvancedFaceDetector:
@@ -284,69 +278,96 @@ class AdvancedFaceDetector:
                 self._eye_cascade = cv2.CascadeClassifier(
                     cv2.data.haarcascades + "haarcascade_eye.xml"
                 )
-            except:
+            except Exception as e:
                 self._eye_cascade = None
+                raise Exception(f"Erreur lors du eyes cascade : {e}")
 
-    def _detect_eyes_fallback(self, img: np.ndarray) -> List[Dict[str, Any]]:
+    def _detect_eyes_fallback(self, img: np.ndarray) -> List[FaceBox]:
+        """
+        Détecte les yeux et retourne une liste d'objets FaceBox.
+        Gère l'expansion de la zone et le clamping pour rester dans les limites de l'image.
+        """
         if self._eye_cascade is None:
             return []
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # 1. Récupérer les dimensions de l'image pour le clamping
+        h, w = img.shape[:2]
 
         # Détection sensible
         eyes = self._eye_cascade.detectMultiScale(
             gray, scaleFactor=1.1, minNeighbors=5, minSize=(10, 10)
         )
 
-        faces_data = []
+        faces_data: List[FaceBox] = []
         expansion_factor = 2.5
 
-        for x, y, w, h in eyes:
-            # Agrandissement individuel (comme avant)
-            center_x = x + w / 2
-            center_y = y + h / 2
-            new_w = int(w * expansion_factor)
-            new_h = int(h * expansion_factor)
+        for x, y, w_eye, h_eye in eyes:
+            # Calcul de l'agrandissement centré
+            center_x = x + w_eye / 2
+            center_y = y + h_eye / 2
+            new_w = int(w_eye * expansion_factor)
+            new_h = int(h_eye * expansion_factor)
             new_x = int(center_x - new_w / 2)
             new_y = int(center_y - new_h / 2)
 
+            # 2. Clamping (Bornage) des coordonnées
+            # On s'assure que le point de départ n'est pas négatif
             new_x = max(0, new_x)
             new_y = max(0, new_y)
 
+            # On s'assure que la boîte ne dépasse pas les bords droit et bas de l'image
+            new_w = min(new_w, w - new_x)
+            new_h = min(new_h, h - new_y)
+
+            # 3. Vérification de validité après recadrage
+            # Si la largeur ou hauteur est <= 0, on ignore cette détection
+            if new_w <= 0 or new_h <= 0:
+                continue
+
             faces_data.append(
-                {
-                    "bbox": [new_x, new_y, new_x + new_w, new_y + new_h],
-                    "confidence": 0.85,
-                    "source": "eyes_fallback",
-                }
+                FaceBox(
+                    bbox=[new_x, new_y, new_x + new_w, new_y + new_h],
+                    confidence=0.85,
+                    source="eyes_fallback",
+                )
             )
 
         # ---------------------------------------------------------
-        # 🟢 NOUVEAU : FUSION DES ZONES (La clé pour avoir 1 seul bloc)
+        # 🟢 FUSION DES ZONES (Si plusieurs yeux détectés)
         # ---------------------------------------------------------
         if len(faces_data) > 1:
             # On trouve les coordonnées extrêmes de toutes les boîtes détectées
-            min_x = min(f["bbox"][0] for f in faces_data)
-            min_y = min(f["bbox"][1] for f in faces_data)
-            max_x = max(f["bbox"][2] for f in faces_data)
-            max_y = max(f["bbox"][3] for f in faces_data)
+            # Correction : Utilisation de l'accès par attribut (.bbox) car ce sont des objets FaceBox
+            min_x = min(f.bbox[0] for f in faces_data)
+            min_y = min(f.bbox[1] for f in faces_data)
+            max_x = max(f.bbox[2] for f in faces_data)
+            max_y = max(f.bbox[3] for f in faces_data)
 
             # On remplace TOUTES les détections par une SEULE grande boîte
             faces_data = [
-                {
-                    "bbox": [min_x, min_y, max_x, max_y],
-                    "confidence": 0.85,
-                    "source": "eyes_fallback_merged",  # Nouveau nom pour le debug
-                }
+                FaceBox(
+                    bbox=[min_x, min_y, max_x, max_y],
+                    confidence=0.85,
+                    source="eyes_fallback_merged",
+                )
             ]
         # ---------------------------------------------------------
 
         return faces_data
 
-    def analyze(self, image_path: str) -> DetectionResult | None:
+    def analyze(self, image_path: str) -> DetectionResult:
         img = cv2.imread(image_path)
         if img is None:
-            return None
+            return DetectionResult(
+                image_path=image_path,
+                has_face=False,
+                face_count=0,
+                confidence=0.0,
+                model_type=self.model_type,
+                faces=[],
+            )
         faces = self.app.get(img)
         faces_data = []
         max_confidence = 0.0
@@ -357,7 +378,11 @@ class AdvancedFaceDetector:
             if score > max_confidence:
                 max_confidence = score
             faces_data.append(
-                {"bbox": bbox, "confidence": score, "source": "retinaface"}
+                FaceBox(
+                    bbox=bbox,
+                    confidence=score,
+                    source="RetinaFace",
+                )
             )
 
         # LOGIQUE DE ROBUSTESSE : Fallback
@@ -376,7 +401,7 @@ class AdvancedFaceDetector:
                 "eyes_fallback"
                 if (
                     len(faces_data) > 0
-                    and faces_data[0].get("source") == "eyes_fallback"
+                    and faces_data[0].source == "eyes_fallback"
                 )
                 else self.model_type
             ),

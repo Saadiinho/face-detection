@@ -66,16 +66,14 @@ class TestFaceDetectorRealImages:
                 result = detector.analyze(str(image_path))
                 if blur:
                     blurred_name = image_path.name.replace("image", "blurred_image")
-                    blurred_image = detector.blur_faces(image_path, blurred_name)
-                if result["has_face"]:
+                    _ = detector.blur_faces(image_path, blurred_name)
+                if result.has_face:
                     nb_detected += 1
                 else:
-                    # 👇 Si pas de visage détecté, on ajoute le nom du fichier à la liste
                     failed_images.append(str(image_path))
 
             except Exception as e:
                 errors.append(f"{image_path}: {str(e)}")
-                # On considère aussi une erreur comme un échec de détection
                 failed_images.append(f"{image_path} (Erreur: {e})")
 
         # 4. Calcul du taux de réussite
