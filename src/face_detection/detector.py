@@ -217,6 +217,7 @@ class FaceDetector:
 
     def analyze(self, image_path: str) -> DetectionResult:
         from pathlib import Path
+
         image_file = Path(image_path)
         if not image_file.exists():
             raise FileNotFoundError(f"Le fichier '{image_path}' n'existe pas")
@@ -399,10 +400,7 @@ class AdvancedFaceDetector:
             confidence=max_confidence,
             model_type=(
                 "eyes_fallback"
-                if (
-                    len(faces_data) > 0
-                    and faces_data[0].source == "eyes_fallback"
-                )
+                if (len(faces_data) > 0 and faces_data[0].source == "eyes_fallback")
                 else self.model_type
             ),
             faces=faces_data,
@@ -430,7 +428,9 @@ class AdvancedFaceDetector:
         try:
             blur_result.image.save(str(final_path))
         except Exception as e:
-            print(f"Erreur lors de la sauvegarde : {e}") # TODO Ajouter des bonnes exceptions
+            print(
+                f"Erreur lors de la sauvegarde : {e}"
+            )  # TODO Ajouter des bonnes exceptions
             return None
 
         return BlurDataResult(
