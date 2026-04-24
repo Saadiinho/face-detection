@@ -7,6 +7,8 @@ from typing import List, Tuple, Union
 
 from PIL import Image, ImageFilter
 
+from src.face_detection.types import FaceBox
+
 logger = logging.getLogger(__name__)
 
 
@@ -28,7 +30,7 @@ class BlurResult:
 
 def auto_blur_faces(
     image: Union[str, Path, Image.Image],
-    detections: List[dict],
+    detections: List[FaceBox],
     config: BlurConfig | None = None,
 ) -> BlurResult:
     cfg = config or BlurConfig()

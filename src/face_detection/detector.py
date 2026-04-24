@@ -8,7 +8,7 @@ from insightface.app import FaceAnalysis
 
 from .auto_blur import auto_blur_faces
 from .exceptions import ImageProcessingError, ModelLoadingError
-from .types import DetectionResult
+from .types import DetectionResult, BlurDataResult
 
 
 class FaceDetector:
@@ -343,10 +343,10 @@ class AdvancedFaceDetector:
 
         return faces_data
 
-    def analyze(self, image_path: str) -> Dict[str, Any]:
+    def analyze(self, image_path: str) -> DetectionResult | None:
         img = cv2.imread(image_path)
         if img is None:
-            return DetectionResult().to_dict()
+            return None
         faces = self.app.get(img)
         faces_data = []
         max_confidence = 0.0
@@ -367,7 +367,7 @@ class AdvancedFaceDetector:
                 faces_data = eye_data
                 max_confidence = 0.85
                 print(f"ℹ️ Repli sur détection d'yeux pour {image_path}")
-        final_result = DetectionResult(
+        return DetectionResult(
             image_path=image_path,
             has_face=len(faces_data) > 0,
             face_count=len(faces_data),
@@ -382,16 +382,15 @@ class AdvancedFaceDetector:
             ),
             faces=faces_data,
         )
-        return final_result.to_dict()
 
     def blur_faces(
         self, image_path: str, filename: str = "result.jpg"
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[BlurDataResult]:
         result_analysis = self.analyze(image_path)
-        if not result_analysis.get("has_face", False):
+        if not result_analysis.has_face:
             return None
 
-        blur_result = auto_blur_faces(str(image_path), result_analysis["faces"])
+        blur_result = auto_blur_faces(str(image_path), result_analysis.faces)
         if not blur_result.was_blurred:
             return None
 
@@ -406,13 +405,13 @@ class AdvancedFaceDetector:
         try:
             blur_result.image.save(str(final_path))
         except Exception as e:
-            print(f"Erreur lors de la sauvegarde : {e}")
+            print(f"Erreur lors de la sauvegarde : {e}") # TODO Ajouter des bonnes exceptions
             return None
 
-        return {
-            "real_image": str(image_path),
-            "blurred_image": str(final_path.resolve()),
-            "done": True,
-            "faces_detected": blur_result.faces_detected,
-            "detection_method": result_analysis["model_type"],
-        }
+        return BlurDataResult(
+            real_image=str(image_path),
+            blurred_image=str(final_path.resolve()),
+            done=True,
+            faces_detected=blur_result.faces_detected,
+            detection_method=result_analysis.model_type,
+        )

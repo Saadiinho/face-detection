@@ -46,3 +46,12 @@ class DetectionResult:
 
     def to_json(self, indent: int = 2) -> str:
         return json.dumps(self.to_dict(), indent=indent)
+
+@dataclass(frozen=True)
+class BlurDataResult:
+    real_image: str
+    blurred_image: str
+    done: bool
+    faces_detected: int
+    detection_method: str
+
