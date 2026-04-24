@@ -15,7 +15,7 @@ TEST_SCENARIOS = [
         1,
         FaceDetector,
         0.75,
-        True,
+        False,
     ),  # Dossier "eyes",  Modèle Haar,   Seuil 75%, Flouttage False
     (
         "retina_faces",
