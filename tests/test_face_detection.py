@@ -36,8 +36,8 @@ class TestFaceDetector:
         detector = FaceDetector(model_type="haar")
         result = detector._analyze_bytes("", b"fake_image")
 
-        assert result["has_face"] is True
-        assert result["face_count"] == 1
+        assert result.has_face is True
+        assert result.face_count == 1
 
     @patch("src.face_detection.detector.cv2.imdecode")
     def test_analyze_bytes_invalid_image_raises_error(self, mock_decode):
