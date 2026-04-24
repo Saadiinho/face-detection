@@ -8,6 +8,7 @@ from insightface.app import FaceAnalysis
 
 from .auto_blur import auto_blur_faces
 from .exceptions import ImageProcessingError, ModelLoadingError
+from .types import DetectionResult
 
 
 class FaceDetector:
@@ -345,15 +346,7 @@ class AdvancedFaceDetector:
     def analyze(self, image_path: str) -> Dict[str, Any]:
         img = cv2.imread(image_path)
         if img is None:
-            return {
-                "image": image_path,
-                "has_face": False,
-                "face_count": 0,
-                "confidence": 0.0,
-                "model_type": self.model_type,
-                "faces": [],
-            }
-
+            return DetectionResult().to_dict()
         faces = self.app.get(img)
         faces_data = []
         max_confidence = 0.0
@@ -374,13 +367,12 @@ class AdvancedFaceDetector:
                 faces_data = eye_data
                 max_confidence = 0.85
                 print(f"ℹ️ Repli sur détection d'yeux pour {image_path}")
-
-        return {
-            "image": image_path,
-            "has_face": len(faces_data) > 0,
-            "face_count": len(faces_data),
-            "confidence": max_confidence,
-            "model_type": (
+        final_result = DetectionResult(
+            image_path=image_path,
+            has_face=len(faces_data) > 0,
+            face_count=len(faces_data),
+            confidence=max_confidence,
+            model_type=(
                 "eyes_fallback"
                 if (
                     len(faces_data) > 0
@@ -388,8 +380,9 @@ class AdvancedFaceDetector:
                 )
                 else self.model_type
             ),
-            "faces": faces_data,
-        }
+            faces=faces_data,
+        )
+        return final_result.to_dict()
 
     def blur_faces(
         self, image_path: str, filename: str = "result.jpg"
