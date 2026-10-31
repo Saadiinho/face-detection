@@ -28,6 +28,20 @@ from .types import DetectionResult, BlurDataResult, FaceBox
 logger = logging.getLogger(__name__)
 
 
+def _get_blurred_image_path(output_path: str | Path) -> Path:
+    """Resolve an output path, preserving the dated results folder for bare names."""
+    path = Path(output_path)
+    if path.suffix.lower() not in (".png", ".jpg", ".jpeg"):
+        path = path.with_name(path.name + ".jpg")
+
+    if path.parent == Path("."):
+        date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = Path("results") / date_str / path
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 class FaceDetector:
     """
     A versatile facial detection engine supporting multiple backends.
@@ -365,18 +379,20 @@ class FaceDetector:
             raise ImageProcessingError(f"IO error reading file: {str(e)}") from e
 
     def blur_faces(
-        self, image_path: str, filename: str = "result.jpg"
+        self, image_path: str, output_path: str | Path = "result.jpg"
     ) -> Optional[BlurDataResult]:
         """
         Detect faces in an image and apply a Gaussian blur to obscure them.
 
         This method combines detection and privacy masking. If faces (or eyes) are found,
-        they are blurred and saved to a timestamped subdirectory.
+        they are blurred and saved to ``output_path``. A bare filename is saved
+        in the default timestamped ``results`` subdirectory.
 
         :param image_path: Path to the source image.
         :type image_path: str
-        :param filename: Desired name for the output blurred image. Defaults to ``'result.jpg'``.
-        :type filename: str, optional
+        :param output_path: Full output file path, or a filename to save in the
+            default timestamped ``results`` subdirectory. Defaults to ``'result.jpg'``.
+        :type output_path: str or pathlib.Path, optional
 
         :return: A :class:`BlurDataResult` object with paths to original and blurred images,
             or ``None`` if no faces were detected to blur.
@@ -394,15 +410,7 @@ class FaceDetector:
         if not blur_result.was_blurred:
             return None
 
-        # Prepare output path
-        date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir = Path("results") / date_str
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        if not filename.lower().endswith((".png", ".jpg", ".jpeg")):
-            filename += ".jpg"
-
-        final_path = output_dir / filename
+        final_path = _get_blurred_image_path(output_path)
 
         try:
             blur_result.image.save(str(final_path))
@@ -610,7 +618,7 @@ class AdvancedFaceDetector:
         )
 
     def blur_faces(
-        self, image_path: str, filename: str = "result.jpg"
+        self, image_path: str, output_path: str | Path = "result.jpg"
     ) -> Optional[BlurDataResult]:
         """
         Detect and blur faces (or eyes) in an image.
@@ -620,8 +628,9 @@ class AdvancedFaceDetector:
 
         :param image_path: Path to the source image.
         :type image_path: str
-        :param filename: Output filename. Defaults to ``'result.jpg'``.
-        :type filename: str, optional
+        :param output_path: Full output file path, or a filename to save in the
+            default timestamped ``results`` subdirectory. Defaults to ``'result.jpg'``.
+        :type output_path: str or pathlib.Path, optional
 
         :return: Result metadata if successful, ``None`` if no faces detected.
         :rtype: BlurDataResult or None
@@ -636,14 +645,7 @@ class AdvancedFaceDetector:
         if not blur_result.was_blurred:
             return None
 
-        date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir = Path("results") / date_str
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        if not filename.lower().endswith((".png", ".jpg", ".jpeg")):
-            filename += ".jpg"
-
-        final_path = output_dir / filename
+        final_path = _get_blurred_image_path(output_path)
 
         try:
             blur_result.image.save(str(final_path))
