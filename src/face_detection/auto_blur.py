@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Tuple, Union
 
-from PIL import Image, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter
 
 # Ensure correct import path relative to your package structure
 from .types import FaceBox
@@ -34,16 +34,15 @@ class BlurConfig:
     blurring algorithm, controlling the intensity of the blur, the margin around
     detected faces, and filtering criteria for small detections.
 
-    :param blur_radius: The radius of the Gaussian blur kernel in pixels.
-        Higher values result in stronger obscuration. Defaults to ``15``.
+    :param blur_radius: Minimum radius of the Gaussian blur in pixels. The actual
+        radius also scales with the detected region to remove facial detail.
+        Defaults to ``80``.
     :type blur_radius: int
     :param bbox_padding: Number of pixels to add around each detected bounding box
-        before applying blur. This ensures the edges of the face are fully covered.
-        Defaults to ``10``.
+        before applying blur. Defaults to ``20``.
     :type bbox_padding: int
     :param min_face_size: Minimum width or height (in pixels) for a detection to be
-        considered valid. Detections smaller than this are ignored as potential noise.
-        Defaults to ``20``.
+        considered valid. Defaults to ``1`` so small detected faces are not skipped.
     :type min_face_size: int
     :param preserve_original_if_empty: If ``True``, returns the original image unchanged
         when no valid faces are detected. If ``False``, behavior is the same but explicitly
@@ -66,9 +65,9 @@ class BlurConfig:
         result = auto_blur_faces("image.jpg", detections, config=config)
     """
 
-    blur_radius: int = 15
-    bbox_padding: int = 10
-    min_face_size: int = 20
+    blur_radius: int = 80
+    bbox_padding: int = 20
+    min_face_size: int = 1
     preserve_original_if_empty: bool = True
 
 
@@ -124,7 +123,8 @@ def auto_blur_faces(
     1. **Load**: Opens the image if a path is provided.
     2. **Filter**: Discards detections that are malformed or too small (noise).
     3. **Clamp**: Adjusts bounding box coordinates to ensure they stay within image boundaries.
-    4. **Blur**: Crops, blurs, and pastes back the affected regions.
+    4. **Blur**: Blurs each padded face region and composites it through a soft
+       oval mask, avoiding the rectangular blur edges of a bounding box.
 
     :param image: The source image to process. Can be a file path (``str`` or ``Path``)
         or an already loaded ``PIL.Image`` object.
@@ -195,20 +195,58 @@ def auto_blur_faces(
     processed_boxes = []
 
     for x1, y1, x2, y2 in valid_detections:
-        # Apply padding and clamp to image boundaries
-        x1_padded = max(0, x1 - cfg.bbox_padding)
-        y1_padded = max(0, y1 - cfg.bbox_padding)
-        x2_padded = min(img_w, x2 + cfg.bbox_padding)
-        y2_padded = min(img_h, y2 + cfg.bbox_padding)
+        # Expand relative to face size so tight detections do not leave recognizable
+        # facial edges visible around the blurred box.
+        padding = max(cfg.bbox_padding, int(max(x2 - x1, y2 - y1) * 0.15))
+        x1_padded = max(0, x1 - padding)
+        y1_padded = max(0, y1 - padding)
+        x2_padded = min(img_w, x2 + padding)
+        y2_padded = min(img_h, y2 + padding)
 
         # Skip if region becomes invalid after padding
         if x2_padded <= x1_padded or y2_padded <= y1_padded:
             continue
 
-        # Crop → Blur → Paste
+        # Scale blur to the face size: a fixed radius can leave details visible in
+        # large, high-resolution faces. This radius reduces the crop to broad color
+        # shapes while keeping the configured value as a minimum.
         region = img.crop((x1_padded, y1_padded, x2_padded, y2_padded))
-        blurred_region = region.filter(ImageFilter.GaussianBlur(radius=cfg.blur_radius))
-        img.paste(blurred_region, (x1_padded, y1_padded))
+
+        # Blur a small working copy. Gaussian blur on a full-resolution crop is
+        # expensive, while enlarging a heavily blurred thumbnail produces an
+        # equally strong privacy mask. Bound the work for large images.
+        max_working_dimension = 256
+        scale = min(1.0, max_working_dimension / max(region.size))
+        if scale < 1.0:
+            working_size = tuple(
+                max(1, round(dimension * scale)) for dimension in region.size
+            )
+            working_region = region.resize(working_size, Image.Resampling.BILINEAR)
+        else:
+            working_region = region
+
+        blur_radius = max(cfg.blur_radius * scale, max(working_region.size) * 0.5)
+        blurred_region = working_region.filter(
+            ImageFilter.GaussianBlur(radius=blur_radius)
+        )
+        if blurred_region.size != region.size:
+            blurred_region = blurred_region.resize(
+                region.size, Image.Resampling.BILINEAR
+            )
+
+        # Detection engines currently expose face boxes rather than a face
+        # segmentation contour. An oval fitted to that padded box follows the
+        # approximate facial silhouette and keeps the box corners untouched.
+        mask = Image.new("L", region.size, 0)
+        ImageDraw.Draw(mask).ellipse(
+            (0, 0, region.width - 1, region.height - 1), fill=255
+        )
+        # Feather the boundary slightly so the oval blends naturally into the
+        # original image instead of creating a hard cutout edge.
+        mask = mask.filter(
+            ImageFilter.GaussianBlur(radius=max(1, min(region.size) * 0.025))
+        )
+        img.paste(blurred_region, (x1_padded, y1_padded), mask)
 
         processed_boxes.append((x1_padded, y1_padded, x2_padded, y2_padded))
 
