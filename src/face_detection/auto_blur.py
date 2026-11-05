@@ -218,15 +218,21 @@ def auto_blur_faces(
         max_working_dimension = 256
         scale = min(1.0, max_working_dimension / max(region.size))
         if scale < 1.0:
-            working_size = tuple(max(1, round(dimension * scale)) for dimension in region.size)
+            working_size = tuple(
+                max(1, round(dimension * scale)) for dimension in region.size
+            )
             working_region = region.resize(working_size, Image.Resampling.BILINEAR)
         else:
             working_region = region
 
         blur_radius = max(cfg.blur_radius * scale, max(working_region.size) * 0.5)
-        blurred_region = working_region.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+        blurred_region = working_region.filter(
+            ImageFilter.GaussianBlur(radius=blur_radius)
+        )
         if blurred_region.size != region.size:
-            blurred_region = blurred_region.resize(region.size, Image.Resampling.BILINEAR)
+            blurred_region = blurred_region.resize(
+                region.size, Image.Resampling.BILINEAR
+            )
 
         # Detection engines currently expose face boxes rather than a face
         # segmentation contour. An oval fitted to that padded box follows the
