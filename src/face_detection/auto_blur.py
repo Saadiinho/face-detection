@@ -34,16 +34,15 @@ class BlurConfig:
     blurring algorithm, controlling the intensity of the blur, the margin around
     detected faces, and filtering criteria for small detections.
 
-    :param blur_radius: The radius of the Gaussian blur kernel in pixels.
-        Higher values result in stronger obscuration. Defaults to ``15``.
+    :param blur_radius: Minimum radius of the Gaussian blur in pixels. The actual
+        radius also scales with the detected region to remove facial detail.
+        Defaults to ``80``.
     :type blur_radius: int
     :param bbox_padding: Number of pixels to add around each detected bounding box
-        before applying blur. This ensures the edges of the face are fully covered.
-        Defaults to ``10``.
+        before applying blur. Defaults to ``20``.
     :type bbox_padding: int
     :param min_face_size: Minimum width or height (in pixels) for a detection to be
-        considered valid. Detections smaller than this are ignored as potential noise.
-        Defaults to ``20``.
+        considered valid. Defaults to ``1`` so small detected faces are not skipped.
     :type min_face_size: int
     :param preserve_original_if_empty: If ``True``, returns the original image unchanged
         when no valid faces are detected. If ``False``, behavior is the same but explicitly
@@ -66,9 +65,9 @@ class BlurConfig:
         result = auto_blur_faces("image.jpg", detections, config=config)
     """
 
-    blur_radius: int = 15
-    bbox_padding: int = 10
-    min_face_size: int = 20
+    blur_radius: int = 80
+    bbox_padding: int = 20
+    min_face_size: int = 1
     preserve_original_if_empty: bool = True
 
 
@@ -195,19 +194,24 @@ def auto_blur_faces(
     processed_boxes = []
 
     for x1, y1, x2, y2 in valid_detections:
-        # Apply padding and clamp to image boundaries
-        x1_padded = max(0, x1 - cfg.bbox_padding)
-        y1_padded = max(0, y1 - cfg.bbox_padding)
-        x2_padded = min(img_w, x2 + cfg.bbox_padding)
-        y2_padded = min(img_h, y2 + cfg.bbox_padding)
+        # Expand relative to face size so tight detections do not leave recognizable
+        # facial edges visible around the blurred box.
+        padding = max(cfg.bbox_padding, int(max(x2 - x1, y2 - y1) * 0.15))
+        x1_padded = max(0, x1 - padding)
+        y1_padded = max(0, y1 - padding)
+        x2_padded = min(img_w, x2 + padding)
+        y2_padded = min(img_h, y2 + padding)
 
         # Skip if region becomes invalid after padding
         if x2_padded <= x1_padded or y2_padded <= y1_padded:
             continue
 
-        # Crop → Blur → Paste
+        # Scale blur to the face size: a fixed radius can leave details visible in
+        # large, high-resolution faces. This radius reduces the crop to broad color
+        # shapes while keeping the configured value as a minimum.
         region = img.crop((x1_padded, y1_padded, x2_padded, y2_padded))
-        blurred_region = region.filter(ImageFilter.GaussianBlur(radius=cfg.blur_radius))
+        blur_radius = max(cfg.blur_radius, max(region.size) * 0.5)
+        blurred_region = region.filter(ImageFilter.GaussianBlur(radius=blur_radius))
         img.paste(blurred_region, (x1_padded, y1_padded))
 
         processed_boxes.append((x1_padded, y1_padded, x2_padded, y2_padded))
