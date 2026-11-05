@@ -28,6 +28,20 @@ from .types import DetectionResult, BlurDataResult, FaceBox
 logger = logging.getLogger(__name__)
 
 
+def _get_blurred_image_path(output_path: str | Path) -> Path:
+    """Resolve an output path, preserving the dated results folder for bare names."""
+    path = Path(output_path)
+    if path.suffix.lower() not in (".png", ".jpg", ".jpeg"):
+        path = path.with_name(path.name + ".jpg")
+
+    if path.parent == Path("."):
+        date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = Path("results") / date_str / path
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 class FaceDetector:
     """
     A versatile facial detection engine supporting multiple backends.
@@ -371,7 +385,8 @@ class FaceDetector:
         Detect faces in an image and apply a Gaussian blur to obscure them.
 
         This method combines detection and privacy masking. If faces (or eyes) are found,
-        they are blurred and saved to a timestamped subdirectory.
+        they are blurred and saved to ``output_path``. A bare filename is saved
+        in the default timestamped ``results`` subdirectory.
 
         :param image_path: Path to the source image.
         :type image_path: str
