@@ -4,7 +4,7 @@ Usage from the repository root::
 
     python tests/blur_image.py
     python tests/blur_image.py /path/to/photo.jpg
-    python tests/blur_image.py /path/to/photo.jpg --output /tmp/blurred.jpg
+    python tests/blur_image.py /path/to/photo.jpg --output /tmp/blurred.webp
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ def main() -> int:
     parser.add_argument(
         "--output",
         type=Path,
-        help="Chemin de sortie (défaut : results/blurred_<nom de l’image>.jpg)",
+        help="Chemin de sortie WebP (défaut : results/blurred_<nom de l’image>.webp)",
     )
     args = parser.parse_args()
 
@@ -55,7 +55,7 @@ def main() -> int:
         if args.model == "retinaface"
         else FaceDetector(model_type=args.model)
     )
-    output = args.output or Path("results") / f"blurred_{args.image.stem}.jpg"
+    output = args.output or Path("results") / f"blurred_{args.image.stem}.webp"
 
     try:
         result = detector.blur_faces(str(args.image), str(output))

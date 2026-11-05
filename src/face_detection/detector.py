@@ -365,7 +365,7 @@ class FaceDetector:
             raise ImageProcessingError(f"IO error reading file: {str(e)}") from e
 
     def blur_faces(
-        self, image_path: str, filename: str = "result.jpg"
+        self, image_path: str, filename: str = "result.webp"
     ) -> Optional[BlurDataResult]:
         """
         Detect faces in an image and apply a Gaussian blur to obscure them.
@@ -375,7 +375,7 @@ class FaceDetector:
 
         :param image_path: Path to the source image.
         :type image_path: str
-        :param filename: Desired name for the output blurred image. Defaults to ``'result.jpg'``.
+        :param filename: Desired output path. The image is saved as WebP; the default is ``'result.webp'``.
         :type filename: str, optional
 
         :return: A :class:`BlurDataResult` object with paths to original and blurred images,
@@ -394,18 +394,20 @@ class FaceDetector:
         if not blur_result.was_blurred:
             return None
 
-        # Prepare output path
-        date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir = Path("results") / date_str
-        output_dir.mkdir(parents=True, exist_ok=True)
+        output_name = Path(filename)
+        output_name = output_name.with_suffix(".webp")
 
-        if not filename.lower().endswith((".png", ".jpg", ".jpeg")):
-            filename += ".jpg"
-
-        final_path = output_dir / filename
+        # Honor explicit paths (including the script's results/name.jpg).
+        # Bare filenames continue to use the dated results directory.
+        if output_name.is_absolute() or output_name.parent != Path("."):
+            final_path = output_name
+        else:
+            date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            final_path = Path("results") / date_str / output_name
+        final_path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            blur_result.image.save(str(final_path))
+            blur_result.image.save(str(final_path), format="WEBP", quality=80, method=0)
         except Exception as e:
             logger.error(f"Failed to save blurred image: {e}")
             raise ImageProcessingError(f"Failed to save output image: {str(e)}") from e
@@ -610,7 +612,7 @@ class AdvancedFaceDetector:
         )
 
     def blur_faces(
-        self, image_path: str, filename: str = "result.jpg"
+        self, image_path: str, filename: str = "result.webp"
     ) -> Optional[BlurDataResult]:
         """
         Detect and blur faces (or eyes) in an image.
@@ -620,7 +622,7 @@ class AdvancedFaceDetector:
 
         :param image_path: Path to the source image.
         :type image_path: str
-        :param filename: Output filename. Defaults to ``'result.jpg'``.
+        :param filename: Output path. The image is saved as WebP; default is ``'result.webp'``.
         :type filename: str, optional
 
         :return: Result metadata if successful, ``None`` if no faces detected.
@@ -636,20 +638,23 @@ class AdvancedFaceDetector:
         if not blur_result.was_blurred:
             return None
 
-        date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir = Path("results") / date_str
-        output_dir.mkdir(parents=True, exist_ok=True)
+        output_name = Path(filename)
+        output_name = output_name.with_suffix(".webp")
 
-        if not filename.lower().endswith((".png", ".jpg", ".jpeg")):
-            filename += ".jpg"
-
-        final_path = output_dir / filename
+        if output_name.is_absolute() or output_name.parent != Path("."):
+            final_path = output_name
+        else:
+            date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            final_path = Path("results") / date_str / output_name
+        final_path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            blur_result.image.save(str(final_path))
+            blur_result.image.save(str(final_path), format="WEBP", quality=80, method=0)
         except Exception as e:
             logger.error(f"Failed to save blurred image: {e}")
-            return None
+            raise ImageProcessingError(
+                f"Failed to save output image at {final_path}: {e}"
+            ) from e
 
         return BlurDataResult(
             real_image=str(image_path),
